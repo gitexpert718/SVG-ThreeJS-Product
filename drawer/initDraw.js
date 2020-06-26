@@ -1,3 +1,5 @@
+var globalRate = 1;
+
 function initDraw(context) {
       
 
@@ -18,8 +20,22 @@ function initDraw(context) {
         // parameter calculation
         this.calHeight = 10 * this.height;
         this.rate  = oriHeight/this.calHeight;
-        this.calWidth = 10 * this.width * this.rate;
+        // if(this.rate * this.calWidth > oriWidth) {
+        //   this.rate = oriWidth/this.calWidth;
+        // }
+        // this.rate = 1;
+        this.calWidth = 10 * this.width * this.rate;        
+        let checkWidth = (this.calWidth > 650);
+        if(checkWidth) {
+          console.log("this.rate", this.rate);
+          this.rate = this.rate / (this.calWidth/650);
+          this.calWidth = 650;
+        }
+
         this.widthDifference = this.calWidth - oriWidth;
+
+        
+        console.log("\nthis.width", this.width, "\nthis.calWidth", this.calWidth, "\nthis.calHeight", this.calHeight, "\noriWidth", oriWidth, "\nthis.widthDifference", this.widthDifference, "\checkWidth", checkWidth, "\nthis.rate", this.rate);
 
         this.upWidth = this.width;
         this.downWidth = this.width;
@@ -492,6 +508,6 @@ function initDraw(context) {
             shape.LM_dot.drawPath(this.LM_dot)
             shape.RM_dot.drawPath(this.RM_dot)
 
-
+            // console.log(shape)
     }
   }

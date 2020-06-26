@@ -72,7 +72,15 @@
 
 
 	.cnote {
-   font-weight: bold;}
+		   font-weight: bold;
+	}
+
+	.ProjectTitle {
+		font-size: 45px;
+		font-weight: bold;
+		color: chocolate;
+		margin: 25px;
+	}
 
 
    	
