@@ -161,9 +161,7 @@
 
 
 
-	#fluid {
-		width:580px;
-		height:940px;
+	/* #fluid {
 		overflow: auto;
 		resize: both;
 		border: 3px rgb(255, 255, 255) solid;
@@ -172,7 +170,7 @@
 		justify-content: center;
 		align-items: center;
 		font-size: 8vh
-	  }
+	  } */
 
 
 

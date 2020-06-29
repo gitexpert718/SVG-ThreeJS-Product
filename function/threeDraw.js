@@ -1,5 +1,15 @@
 
-let scene = new THREE.Scene(), material, geometry, pan, mesh, light;
+let scene = new THREE.Scene(), 
+    material, 
+    geometry, 
+    pan={},
+    panSize={},
+    mesh = new THREE.Group(), 
+    light = new THREE.PointLight("0xFFFFF",1,500);
+
+light.position.set(1, 0, 300);
+scene.add(light);
+scene.add(mesh);
 
 let camera = new THREE.PerspectiveCamera(50, 1134/600, 1, 1000)
 camera.position.z = 650;
@@ -15,7 +25,16 @@ renderer.setClearColor('#e5e5e5')
 renderer.setSize(1134, 600);
 canvasdiv.appendChild(renderer.domElement);
 
-function shapeDraw(obj) {
+
+function shapeDrawInidividualPan(obj, id, pos) {
+
+    if(pan[id]) {
+        mesh.remove(pan[id]);
+        pan[id].geometry.dispose();
+        pan[id].material.dispose();
+        pan[id] = undefined;
+    }
+
     let x = 0, y = 0;
 
     let shape = new THREE.Shape();
@@ -42,89 +61,196 @@ function shapeDraw(obj) {
     shape.lineTo( x - obj.width / 2, y - obj.height / 2 + obj.leftBottomHeight ); // A
 
     let extrudeSettings = { 
-        amount: 10,
-        bevelSize: 1, 
+        amount: 2,
+        bevelSize: 0, 
         bevelThickness: 2 
-    };
-    mesh = new THREE.Group();
+    };    
     geometry = new THREE.ExtrudeBufferGeometry( shape, extrudeSettings );
     material = new THREE.MeshPhongMaterial({
-        color:0x00ff00,
+        color: 0x00ffff,
+        specular: 0x0000ff,
         opacity: obj.opacity,
         transparent: true,
         shininess: 100,
         clipShadows: true
     });
-    pan = new THREE.Mesh( geometry, material );
-    pan.rotation.y = obj.angle;
-    mesh.add(pan);
-    scene.add(mesh);
-    light = new THREE.PointLight(0xFFFFF,1,500);
-    light.position.set(1, 0, 300);
-    scene.add(light);
+    pan[id] = new THREE.Mesh( geometry, material );
+    pan[id].rotation.y = obj.angle;
+    pan[id].position.x = pos[0];
+    pan[id].position.y = pos[1];
+    pan[id].position.z = pos[2];
+    console.log(id + "'s position: ", pan[id].position, "\n");
+    AddPanToMesh(pan[id]);
 }
 
-function drawThreeModel() {
 
-    clearThree(scene);    
+function AddPanToMesh(pan) {
+    mesh.add(pan);
+}
 
-    let inputedWidth = document.getElementById("width").value || 0,
-        inputedHeight = document.getElementById("height").value || 0,
 
-        leftTopWidth = document.getElementById("LT_notch_width1").value || 0,
-        leftTopSubWidth = document.getElementById("LT_notch_width2").value || leftTopWidth,
-        leftTopHeight = document.getElementById("LT_notch_height1").value || 0,
-        leftTopSubHeight = document.getElementById("LT_notch_height2").value || leftTopHeight,
+function drawThreeModelBtnClick(clicked_id) {
 
-        rightTopWidth = document.getElementById("RT_notch_width1").value || 0,
-        rightTopSubWidth = document.getElementById("RT_notch_width2").value || rightTopWidth,
-        rightTopHeight = document.getElementById("RT_notch_height1").value || 0,
-        rightTopSubHeight = document.getElementById("RT_notch_height2").value || rightTopHeight,
+    cloneIdAdded = clicked_id.split("-")[1];
 
-        leftBottomWidth = document.getElementById("LB_notch_width1").value || 0,
-        leftBottomSubWidth = document.getElementById("LB_notch_width2").value || leftBottomWidth,
-        leftBottomHeight = document.getElementById("LB_notch_height1").value || 0,
-        leftBottomSubHeight = document.getElementById("LB_notch_height2").value || leftBottomHeight,
+    let inputedWidth = document.getElementById("width" + cloneIdAdded).value || 28,
+        inputedHeight = document.getElementById("height" + cloneIdAdded).value || 71,
 
-        rightBottomWidth = document.getElementById("RB_notch_width1").value || 0,
-        rightBottomSubWidth = document.getElementById("RB_notch_width2").value || rightBottomWidth,
-        rightBottomHeight = document.getElementById("RB_notch_height1").value || 0,
-        rightBottomSubHeight = document.getElementById("RB_notch_height2").value || rightBottomHeight,
+        leftTopWidth = document.getElementById("LT_notch_width1" + cloneIdAdded).value || 0,
+        leftTopSubWidth = document.getElementById("LT_notch_width2" + cloneIdAdded).value || leftTopWidth,
+        leftTopHeight = document.getElementById("LT_notch_height1" + cloneIdAdded).value || 0,
+        leftTopSubHeight = document.getElementById("LT_notch_height2" + cloneIdAdded).value || leftTopHeight,
 
-        transRate = 500 / inputedHeight;
+        rightTopWidth = document.getElementById("RT_notch_width1" + cloneIdAdded).value || 0,
+        rightTopSubWidth = document.getElementById("RT_notch_width2" + cloneIdAdded).value || rightTopWidth,
+        rightTopHeight = document.getElementById("RT_notch_height1" + cloneIdAdded).value || 0,
+        rightTopSubHeight = document.getElementById("RT_notch_height2" + cloneIdAdded).value || rightTopHeight,
 
-    if(transRate * inputedWidth > 400) {
-        transRate = 400 / inputedWidth;
+        leftBottomWidth = document.getElementById("LB_notch_width1" + cloneIdAdded).value || 0,
+        leftBottomSubWidth = document.getElementById("LB_notch_width2" + cloneIdAdded).value || leftBottomWidth,
+        leftBottomHeight = document.getElementById("LB_notch_height1" + cloneIdAdded).value || 0,
+        leftBottomSubHeight = document.getElementById("LB_notch_height2" + cloneIdAdded).value || leftBottomHeight,
+
+        rightBottomWidth = document.getElementById("RB_notch_width1" + cloneIdAdded).value || 0,
+        rightBottomSubWidth = document.getElementById("RB_notch_width2" + cloneIdAdded).value || rightBottomWidth,
+        rightBottomHeight = document.getElementById("RB_notch_height1" + cloneIdAdded).value || 0,
+        rightBottomSubHeight = document.getElementById("RB_notch_height2" + cloneIdAdded).value || rightBottomHeight,
+
+        transRate,
+        transformBy = "TransformByHeight";
+
+    if(cloneIdAdded == "") {
+        cloneIdAdded = "main";
+    }
+    
+    panSize[cloneIdAdded] = {
+        "width": inputedWidth, 
+        "height": inputedHeight,
+        "angle": 0,
+        "opacity": 0.6,
+        "leftTopWidth": leftTopWidth,
+        "leftTopSubWidth": leftTopSubWidth,
+        "leftTopHeight": leftTopHeight,
+        "leftTopSubHeight": leftTopSubHeight,
+        "rightTopWidth": rightTopWidth,
+        "rightTopSubWidth": rightTopSubWidth,
+        "rightTopHeight": rightTopHeight,
+        "rightTopSubHeight": rightTopSubHeight,
+        "leftBottomWidth": leftBottomWidth,
+        "leftBottomSubWidth": leftBottomSubWidth,
+        "leftBottomHeight": leftBottomHeight,
+        "leftBottomSubHeight": leftBottomSubHeight,
+        "rightBottomWidth": rightBottomWidth,
+        "rightBottomSubWidth": rightBottomSubWidth,
+        "rightBottomHeight": rightBottomHeight,
+        "rightBottomSubHeight": rightBottomSubHeight
+    };
+
+    let maxHeight = parseInt(panSize[Object.keys(panSize)[0]]["height"]) || 71,
+        maxWidth = parseInt(panSize[Object.keys(panSize)[0]]["width"]) || 28;
+    for (let i = 1; i < Object.keys(panSize).length; i++) {
+        let cntHeight = parseInt(panSize[Object.keys(panSize)[i]]["height"]),
+            cntWidth = parseInt(panSize[Object.keys(panSize)[i]]["width"]);
+        if ( cntHeight > maxHeight ) {
+            maxHeight = cntHeight;
+        }
+        if ( cntWidth > maxWidth ) {
+            maxWidth = cntWidth;
+        }
     }
 
-    let boxWidth = inputedWidth * transRate, 
-        boxHeight = inputedHeight * transRate;
+    transRate = 500 / maxHeight;
 
-    shapeDraw(
-        {
-            "width": boxWidth, 
-            "height": boxHeight, 
-            "angle": 0, 
-            "opacity": 0.4,
-            "leftTopWidth": leftTopWidth * transRate,
-            "leftTopSubWidth": leftTopSubWidth * transRate,
-            "leftTopHeight": leftTopHeight * transRate,
-            "leftTopSubHeight": leftTopSubHeight * transRate,
-            "rightTopWidth": rightTopWidth * transRate,
-            "rightTopSubWidth": rightTopSubWidth * transRate,
-            "rightTopHeight": rightTopHeight * transRate,
-            "rightTopSubHeight": rightTopSubHeight * transRate,
-            "leftBottomWidth": leftBottomWidth * transRate,
-            "leftBottomSubWidth": leftBottomSubWidth * transRate,
-            "leftBottomHeight": leftBottomHeight * transRate,
-            "leftBottomSubHeight": leftBottomSubHeight * transRate,
-            "rightBottomWidth": rightBottomWidth * transRate,
-            "rightBottomSubWidth": rightBottomSubWidth * transRate,
-            "rightBottomHeight": rightBottomHeight * transRate,
-            "rightBottomSubHeight": rightBottomSubHeight * transRate
-        }
-    );
+    if( maxWidth * transRate > 400) {
+        transRate = 400 / maxWidth;
+        transformBy = "TransformByWidth";
+    }
+
+    DrawMesh(panSize, transRate);
+    
 }
+
+
+function DrawMesh(objects, rate) {
+    let panLength = Object.keys(objects).length;
+
+    let objectTotalWidth = 0, startPosX = 0;
+    for (let i = 0; i < panLength; i++) {
+        objectTotalWidth += parseInt( objects[Object.keys(objects)[i]].width ) * rate;
+    }
+    startPosX = - objectTotalWidth / 2 + parseInt( objects[Object.keys(objects)[0]].width ) * rate / 2;
+
+    for (let i = 0; i < panLength ; i++) {
+        shapeDrawInidividualPan(
+            {
+                "width": parseInt( objects[Object.keys(objects)[i]].width ) * rate, 
+                "height": parseInt( objects[Object.keys(objects)[i]].height ) * rate, 
+                "angle": ( objects[Object.keys(objects)[i]].angle ),
+                "opacity": ( objects[Object.keys(objects)[i]].opacity ),
+                "leftTopWidth": parseInt( objects[Object.keys(objects)[i]].leftTopWidth ) * rate,
+                "leftTopSubWidth": parseInt( objects[Object.keys(objects)[i]].leftTopSubWidth ) * rate,
+                "leftTopHeight": parseInt( objects[Object.keys(objects)[i]].leftTopHeight ) * rate,
+                "leftTopSubHeight": parseInt( objects[Object.keys(objects)[i]].leftTopSubHeight ) * rate,
+                "rightTopWidth": parseInt( objects[Object.keys(objects)[i]].rightTopWidth ) * rate,
+                "rightTopSubWidth": parseInt( objects[Object.keys(objects)[i]].rightTopSubWidth ) * rate,
+                "rightTopHeight": parseInt( objects[Object.keys(objects)[i]].rightTopHeight ) * rate,
+                "rightTopSubHeight": parseInt( objects[Object.keys(objects)[i]].rightTopSubHeight ) * rate,
+                "leftBottomWidth": parseInt( objects[Object.keys(objects)[i]].leftBottomWidth ) * rate,
+                "leftBottomSubWidth": parseInt( objects[Object.keys(objects)[i]].leftBottomSubWidth ) * rate,
+                "leftBottomHeight": parseInt( objects[Object.keys(objects)[i]].leftBottomHeight ) * rate,
+                "leftBottomSubHeight": parseInt( objects[Object.keys(objects)[i]].leftBottomSubHeight ) * rate,
+                "rightBottomWidth": parseInt( objects[Object.keys(objects)[i]].rightBottomWidth ) * rate,
+                "rightBottomSubWidth": parseInt( objects[Object.keys(objects)[i]].rightBottomSubWidth ) * rate,
+                "rightBottomHeight": parseInt( objects[Object.keys(objects)[i]].rightBottomHeight ) * rate,
+                "rightBottomSubHeight": parseInt( objects[Object.keys(objects)[i]].rightBottomSubHeight ) * rate
+            },
+            Object.keys(objects)[i],
+            [startPosX, 0, 0]
+        );
+        startPosX += ( parseInt( objects[Object.keys(objects)[i]].width ) + parseInt( objects[Object.keys(objects)[i+1]].width ) ) * rate / 2;
+    }    
+}
+
+
+let clonedStatus = "_clone";
+function AddPage(clicked_id) {
+
+    cloning(clicked_id);
+    
+    let cloneId = "main",
+        checkedCloneId = clicked_id.split("-")[1];
+    
+    if(checkedCloneId != "") {
+        cloneId = checkedCloneId;
+    }
+    
+    panSize[clonedStatus] = {
+        "width": panSize[cloneId].width, 
+        "height": panSize[cloneId].height,
+        "angle": panSize[cloneId].angle,
+        "opacity": panSize[cloneId].opacity,
+        "leftTopWidth": panSize[cloneId].leftTopWidth,
+        "leftTopSubWidth": panSize[cloneId].leftTopSubWidth,
+        "leftTopHeight": panSize[cloneId].leftTopHeight,
+        "leftTopSubHeight": panSize[cloneId].leftTopSubHeight,
+        "rightTopWidth": panSize[cloneId].rightTopWidth,
+        "rightTopSubWidth": panSize[cloneId].rightTopSubWidth,
+        "rightTopHeight": panSize[cloneId].rightTopHeight,
+        "rightTopSubHeight": panSize[cloneId].rightTopSubHeight,
+        "leftBottomWidth": panSize[cloneId].leftBottomWidth,
+        "leftBottomSubWidth": panSize[cloneId].leftBottomSubWidth,
+        "leftBottomHeight": panSize[cloneId].leftBottomHeight,
+        "leftBottomSubHeight": panSize[cloneId].leftBottomSubHeight,
+        "rightBottomWidth": panSize[cloneId].rightBottomWidth,
+        "rightBottomSubWidth": panSize[cloneId].rightBottomSubWidth,
+        "rightBottomHeight": panSize[cloneId].rightBottomHeight,
+        "rightBottomSubHeight": panSize[cloneId].rightBottomSubHeight
+    }
+    clonedStatus += "_clone";
+
+    drawThreeModelBtnClick("transform-");
+}
+
 
 function clearThree(obj){
     while(obj.children.length > 0){ 
@@ -144,14 +270,17 @@ function clearThree(obj){
     }
 }
 
+
 let render = function() {
     requestAnimationFrame(render); //to adjust aspect ratio when screen changes
     renderer.render(scene, camera);
 }
 
+
 let mouseDown = false,
     mouseX = 0,
     mouseY = 0;
+
 
 function onMouseMove(evt) {
     if (!mouseDown) {
@@ -166,6 +295,7 @@ function onMouseMove(evt) {
     rotateScene(deltaX, deltaY);
 }
 
+
 function onMouseDown(evt) {
     evt.preventDefault();
     mouseDown = true;
@@ -173,10 +303,12 @@ function onMouseDown(evt) {
     mouseY = evt.clientY;
 }
 
+
 function onMouseUp(evt) {
     evt.preventDefault();
     mouseDown = false;
 }
+
 
 function addMouseHandler(canvas) {
     canvas.addEventListener('mousemove', function (e) {
@@ -190,17 +322,47 @@ function addMouseHandler(canvas) {
     }, false);
 }
 
+
 function rotateScene(deltaX, deltaY) {
     mesh.rotation.y += deltaX / 100;
     mesh.rotation.x += deltaY / 100;
 }
 
+
 function init() {
-    shapeDraw({
-        "width": 28 * 500 / 71, 
-        "height": 500, 
-        "angle": -Math.PI / 6, 
-        "opacity": 0.4,
+    shapeDrawInidividualPan(
+        {
+            "width": 28 * 500 / 71, 
+            "height": 500, 
+            "angle": 0, 
+            "opacity": 0.6,
+            "leftTopWidth": 0,
+            "leftTopSubWidth": 0,
+            "leftTopHeight": 0,
+            "leftTopSubHeight": 0,
+            "rightTopWidth": 0,
+            "rightTopSubWidth": 0,
+            "rightTopHeight": 0,
+            "rightTopSubHeight": 0,
+            "leftBottomWidth": 0,
+            "leftBottomSubWidth": 0,
+            "leftBottomHeight": 0,
+            "leftBottomSubHeight": 0,
+            "rightBottomWidth": 0,
+            "rightBottomSubWidth": 0,
+            "rightBottomHeight": 0,
+            "rightBottomSubHeight": 0
+        }, 
+        "main",
+        [0, 0, 0]
+    );
+    render();
+    addMouseHandler(canvasdiv);
+    panSize["main"] = {
+        "width": 28, 
+        "height": 71,
+        "angle": 0,
+        "opacity": 0.6,
         "leftTopWidth": 0,
         "leftTopSubWidth": 0,
         "leftTopHeight": 0,
@@ -217,9 +379,8 @@ function init() {
         "rightBottomSubWidth": 0,
         "rightBottomHeight": 0,
         "rightBottomSubHeight": 0
-    });
-    render();
-    addMouseHandler(canvasdiv);
+    };
 }
+
 
 init();

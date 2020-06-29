@@ -476,7 +476,7 @@
     }
 
   
-   $("#transform").click( function() {
+   $("#transform-").click( function() {
 
     // mainValue(simplePanel)
       this.inputWidth = inputing("width");
@@ -706,8 +706,7 @@
 
 
    $("#reload").click(function () {
-    window.location.reload();
-   
+    window.location.reload();   
   });
 
   $("#download").click(function () {
