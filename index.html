@@ -7,7 +7,7 @@
 	<link rel="stylesheet" href="./index.css">
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/102/three.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/2.1.2/TweenMax.min.js"></script>
-    <title>UpdateThreeJS</title>
+    <title>UpdateThreeJS-Next-Week</title>
 </head>
 
 <body>
@@ -27,7 +27,7 @@
 								<div class="row">
 									
 									<div class="col-md-5">
-										<p><b>Input the Width and Height</b></p>
+										<p><b>Total Width and Height</b></p>
 										<div class = "Width&&Height">
 											<div class="row">
 												<div class="col-md-5">
@@ -40,17 +40,30 @@
 											
 										</div>
 									</div>
-	
+
 									<div class="col-md-5">
+										<p><b>Knobs</b></p>
+										<div class="row">
+											<div class="col-md-5">
+												<select name="knobs" id="knobs">
+													<option value="none">None</option>
+													<option value="left">Left</option>
+													<option value="right">Right</option>
+												</select>
+											</div>
+										</div>
+									</div>
+	
+									<!-- <div class="col-md-5">
 										<div class = "Note">
 											<b>
 											<p>Input the Center Note</p>
 										</b>
 											<input placeholder="Center Note..." class = "Note" id = "note" type="text" />
 										</div>
-									</div>
+									</div> -->
 								</div>
-							</div>	<br/>
+							</div><br>
 	
 							<div class="Notch">
 								<p><b> Notch</b></p>	
@@ -100,26 +113,21 @@
 										</div>
 									</div>
 								</div>
-							</div>	<br/>
+							</div><br>
 	
 							<button class = "transform" id = "transform-" onclick="drawThreeModelBtnClick(this.id)">Transform</button>&nbsp;&nbsp;
 				
-							<button class = "transform" id = "reload">Reload</button>&nbsp;&nbsp;
+							<button class = "transform" id = "reload" onclick="Reload()">Reload</button>&nbsp;&nbsp;
 						
-							<button class = "transform" id = "download">Download</button>
-	
-							<br><br>
-	
-							<button class = "transform" id = "addContainer-" onclick="AddPage(this.id)">Add</button>&nbsp;&nbsp;
+							<button class = "transform" id = "addContainer-" onclick="AddPage(this.id)">Clone</button>&nbsp;&nbsp;
 
-							<input placeholder="angle..." id = "angle" type="text" style="height:35px;width:70px"/>
-						
+							<input placeholder="angle" id = "angle" type="text" style="height:35px;width:70px"/>						
 	
 					</div> <br/>
 	
 				</div>
 	
-				<div class="col-md-6" id = "fluidDiv" style="height: 600px; width: 580px;">
+				<div class="col-md-6" id = "fluidDiv" style="height: 800px; width: 580px;">
 	
 					<div id="fluid" style="width: 580px; height: 600px;">
 						<!-- viewbox="0 600 1000 400" -->
@@ -582,7 +590,7 @@
 			<hr style="width: 1134px;">
 		</div>		
 
-		<div class="row" style="height: 600px; margin-bottom: 100px;">
+		<div class="row" style="height: 1000px; margin-bottom: 100px;">
 			<div class="col-md-12" style="height: 100%; width: 100%;" id="threeCanvasDiv">
 			</div>
 		</div>

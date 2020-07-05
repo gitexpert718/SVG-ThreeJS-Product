@@ -43,7 +43,8 @@
     $mainDesignArea.find('[id]').each(function () {
       this.id += "_clone";
     });
-    $div.after( $mainDesignArea.append() );
+    $div.after( $mainDesignArea.append() );    
+    document.getElementById(clicked_id).style.display = "none";
   }
 
 

@@ -2,6 +2,8 @@
 
 
     function Miter() {
+      console.log("in Miter: cloneIdAdded", cloneIdAdded);
+
         this.Handle = "Miter";
         this.draw = function(context) {
   

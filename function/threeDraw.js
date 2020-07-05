@@ -2,27 +2,31 @@
 let scene = new THREE.Scene(), 
     material, 
     geometry, 
-    pan={},
-    panSize={},
+    pan = {},
+    panSize = {},
+    knobs = {},
     mesh = new THREE.Group(), 
-    light = new THREE.PointLight("0xFFFFF",1,500);
+    light_point = new THREE.PointLight("0x69d0dd",1,500);
+    light = new THREE.DirectionalLight( 0xffffff );
 
-light.position.set(1, 0, 300);
+light_point.position.set(1, 0, 300);
+light.position.set( 1, 0, 300 ).normalize();
+scene.add(light_point);
 scene.add(light);
 scene.add(mesh);
 
-let camera = new THREE.PerspectiveCamera(50, 1134/600, 1, 1000)
-camera.position.z = 650;
+let camera = new THREE.PerspectiveCamera(50, 1134/800, 1, 2000)
+camera.position.z = 1200;
 scene.add( camera );
-window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth * 0.8/600;
-    camera.updateProjectionMatrix()
-});
+// window.addEventListener('resize', () => {
+//     camera.aspect = window.innerWidth * 0.8/800;
+//     camera.updateProjectionMatrix()
+// });
 
 let canvasdiv = document.getElementById("threeCanvasDiv"),
     renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setClearColor('#e5e5e5')
-renderer.setSize(1134, 600);
+renderer.setSize(1134, 800);
 canvasdiv.appendChild(renderer.domElement);
 
 
@@ -33,6 +37,12 @@ function shapeDrawInidividualPan(obj, id, pos) {
         pan[id].geometry.dispose();
         pan[id].material.dispose();
         pan[id] = undefined;
+    }
+    if(knobs[id]) {
+        mesh.remove(knobs[id]);
+        knobs[id].geometry.dispose();
+        knobs[id].material.dispose();
+        knobs[id] = undefined;
     }
 
     let x = 0, y = 0;
@@ -67,8 +77,10 @@ function shapeDrawInidividualPan(obj, id, pos) {
     };    
     geometry = new THREE.ExtrudeBufferGeometry( shape, extrudeSettings );
     material = new THREE.MeshPhongMaterial({
-        color: 0x00ffff,
-        specular: 0x0000ff,
+        color: 0x2194ce,
+        ambient: 0x58eaea,
+        specular: 0x111111,
+        emissive: 0x0,
         opacity: obj.opacity,
         transparent: true,
         shininess: 100,
@@ -79,17 +91,12 @@ function shapeDrawInidividualPan(obj, id, pos) {
     pan[id].position.x = pos[0];
     pan[id].position.y = pos[1];
     pan[id].position.z = pos[2];
-    console.log(id + "'s position: ", pan[id].position, "\n");
-    AddPanToMesh(pan[id]);
+    
+    mesh.add(pan[id]);
 }
 
 
-function AddPanToMesh(pan) {
-    mesh.add(pan);
-}
-
-
-function drawThreeModelBtnClick(clicked_id) {
+function drawThreeModelBtnClick(clicked_id) {    
 
     cloneIdAdded = clicked_id.split("-")[1];
 
@@ -116,8 +123,12 @@ function drawThreeModelBtnClick(clicked_id) {
         rightBottomHeight = document.getElementById("RB_notch_height1" + cloneIdAdded).value || 0,
         rightBottomSubHeight = document.getElementById("RB_notch_height2" + cloneIdAdded).value || rightBottomHeight,
 
+        angle = document.getElementById("angle" + cloneIdAdded).value || 180,
+
         transRate,
-        transformBy = "TransformByHeight";
+        transformBy = "TransformByHeight",
+
+        knobsStatus = document.getElementById("knobs" + cloneIdAdded).value || "none";
 
     if(cloneIdAdded == "") {
         cloneIdAdded = "main";
@@ -126,8 +137,8 @@ function drawThreeModelBtnClick(clicked_id) {
     panSize[cloneIdAdded] = {
         "width": inputedWidth, 
         "height": inputedHeight,
-        "angle": 0,
-        "opacity": 0.6,
+        "angle": angle,
+        "opacity": 0.4,
         "leftTopWidth": leftTopWidth,
         "leftTopSubWidth": leftTopSubWidth,
         "leftTopHeight": leftTopHeight,
@@ -143,7 +154,8 @@ function drawThreeModelBtnClick(clicked_id) {
         "rightBottomWidth": rightBottomWidth,
         "rightBottomSubWidth": rightBottomSubWidth,
         "rightBottomHeight": rightBottomHeight,
-        "rightBottomSubHeight": rightBottomSubHeight
+        "rightBottomSubHeight": rightBottomSubHeight,
+        "knobsStatus": knobsStatus
     };
 
     let maxHeight = parseInt(panSize[Object.keys(panSize)[0]]["height"]) || 71,
@@ -159,14 +171,16 @@ function drawThreeModelBtnClick(clicked_id) {
         }
     }
 
-    transRate = 500 / maxHeight;
+    transRate = 400 / maxHeight;
 
     if( maxWidth * transRate > 400) {
-        transRate = 400 / maxWidth;
+        transRate = 500 / maxWidth;
         transformBy = "TransformByWidth";
     }
 
     DrawMesh(panSize, transRate);
+
+    transformDesign(clicked_id);
     
 }
 
@@ -174,18 +188,30 @@ function drawThreeModelBtnClick(clicked_id) {
 function DrawMesh(objects, rate) {
     let panLength = Object.keys(objects).length;
 
-    let objectTotalWidth = 0, startPosX = 0;
+    let objectTotalWidth = 0, objectTotalDepth = 0, startPosX = 0, startPosZ, angle=[];
+    angle[0] = 0;
     for (let i = 0; i < panLength; i++) {
-        objectTotalWidth += parseInt( objects[Object.keys(objects)[i]].width ) * rate;
+        if(i > 0) {
+            angle.push(angle[i-1] + parseInt(180 - objects[Object.keys(objects)[i-1]].angle ) /180 * Math.PI );
+        }
+        let d_objectWidth = parseInt( objects[Object.keys(objects)[i]].width ) * rate * Math.cos(angle[i]);
+        let d_objectDepth = ( parseInt( objects[Object.keys(objects)[i]].width ) ) * Math.sin(angle[i]) * rate;
+        if(d_objectWidth > 0) {
+            objectTotalWidth += d_objectWidth;
+        }
+        if(d_objectDepth > 0) {
+            objectTotalDepth += d_objectDepth;
+        }
     }
     startPosX = - objectTotalWidth / 2 + parseInt( objects[Object.keys(objects)[0]].width ) * rate / 2;
-
+    startPosZ = Math.abs(objectTotalDepth) / 2;
+    
     for (let i = 0; i < panLength ; i++) {
         shapeDrawInidividualPan(
             {
                 "width": parseInt( objects[Object.keys(objects)[i]].width ) * rate, 
                 "height": parseInt( objects[Object.keys(objects)[i]].height ) * rate, 
-                "angle": ( objects[Object.keys(objects)[i]].angle ),
+                "angle": angle[i],
                 "opacity": ( objects[Object.keys(objects)[i]].opacity ),
                 "leftTopWidth": parseInt( objects[Object.keys(objects)[i]].leftTopWidth ) * rate,
                 "leftTopSubWidth": parseInt( objects[Object.keys(objects)[i]].leftTopSubWidth ) * rate,
@@ -205,10 +231,43 @@ function DrawMesh(objects, rate) {
                 "rightBottomSubHeight": parseInt( objects[Object.keys(objects)[i]].rightBottomSubHeight ) * rate
             },
             Object.keys(objects)[i],
-            [startPosX, 0, 0]
+            [startPosX, 0, startPosZ]
         );
-        startPosX += ( parseInt( objects[Object.keys(objects)[i]].width ) + parseInt( objects[Object.keys(objects)[i+1]].width ) ) * rate / 2;
-    }    
+        if(objects[Object.keys(objects)[i]].knobsStatus != "none") {
+            drawKnobs(
+                Object.keys(objects)[i], 
+                rate, 
+                [startPosX, 0, startPosZ], 
+                angle[i], 
+                objects[Object.keys(objects)[i]].knobsStatus
+            );
+        };
+        if(i < panLength - 1) {
+            startPosX += ( parseInt( objects[Object.keys(objects)[i]].width ) * Math.cos(angle[i]) + parseInt( objects[Object.keys(objects)[i+1]].width ) * Math.cos(angle[i+1]) ) * rate / 2;            
+            startPosZ -= ( ( parseInt( objects[Object.keys(objects)[i+1]].width ) ) * Math.sin(angle[i+1]) + ( parseInt( objects[Object.keys(objects)[i]].width ) ) * Math.sin(angle[i]) ) * rate / 2;
+        };
+    }
+}
+
+
+function drawKnobs(id, rate, pos, ang, dir) {
+    var parentWidth = panSize[id].width * rate,
+        pointZ = (dir == "right") ? -parentWidth / 2 + 20 : parentWidth / 2 - 20;
+    
+    var points = [];
+    points.push( new THREE.Vector3( 0, 20, pointZ ) );
+    points.push( new THREE.Vector3( 20, 20, pointZ ) );
+    points.push( new THREE.Vector3( 20, -20, pointZ ) );
+    points.push( new THREE.Vector3( 0, -20, pointZ ) );
+
+    var geometry = new THREE.BufferGeometry().setFromPoints( points ),
+        material = new THREE.LineBasicMaterial( { color: 0x808080, linecap: 'round', linewidth: 2, linejoin:  'round' } );
+
+    knobs[id] = new THREE.Line( geometry, material );
+    knobs[id].rotation.y = ang - Math.PI / 2;
+    knobs[id].position.x = pos[0];
+    knobs[id].position.z = pos[2];
+    mesh.add( knobs[id] );
 }
 
 
@@ -244,11 +303,12 @@ function AddPage(clicked_id) {
         "rightBottomWidth": panSize[cloneId].rightBottomWidth,
         "rightBottomSubWidth": panSize[cloneId].rightBottomSubWidth,
         "rightBottomHeight": panSize[cloneId].rightBottomHeight,
-        "rightBottomSubHeight": panSize[cloneId].rightBottomSubHeight
-    }
+        "rightBottomSubHeight": panSize[cloneId].rightBottomSubHeight,
+        "knobsStatus": "none"
+    };
     clonedStatus += "_clone";
 
-    drawThreeModelBtnClick("transform-");
+    drawThreeModelBtnClick(clicked_id);
 }
 
 
@@ -330,12 +390,35 @@ function rotateScene(deltaX, deltaY) {
 
 
 function init() {
+    panSize["main"] = {
+        "width": 28, 
+        "height": 71,
+        "angle": 0,
+        "opacity": 0.4,
+        "leftTopWidth": 0,
+        "leftTopSubWidth": 0,
+        "leftTopHeight": 0,
+        "leftTopSubHeight": 0,
+        "rightTopWidth": 0,
+        "rightTopSubWidth": 0,
+        "rightTopHeight": 0,
+        "rightTopSubHeight": 0,
+        "leftBottomWidth": 0,
+        "leftBottomSubWidth": 0,
+        "leftBottomHeight": 0,
+        "leftBottomSubHeight": 0,
+        "rightBottomWidth": 0,
+        "rightBottomSubWidth": 0,
+        "rightBottomHeight": 0,
+        "rightBottomSubHeight": 0,
+        "knobsStatus": "none"
+    };
     shapeDrawInidividualPan(
         {
             "width": 28 * 500 / 71, 
             "height": 500, 
-            "angle": 0, 
-            "opacity": 0.6,
+            "angle": 0.1, 
+            "opacity": 0.4,
             "leftTopWidth": 0,
             "leftTopSubWidth": 0,
             "leftTopHeight": 0,
@@ -357,29 +440,7 @@ function init() {
         [0, 0, 0]
     );
     render();
-    addMouseHandler(canvasdiv);
-    panSize["main"] = {
-        "width": 28, 
-        "height": 71,
-        "angle": 0,
-        "opacity": 0.6,
-        "leftTopWidth": 0,
-        "leftTopSubWidth": 0,
-        "leftTopHeight": 0,
-        "leftTopSubHeight": 0,
-        "rightTopWidth": 0,
-        "rightTopSubWidth": 0,
-        "rightTopHeight": 0,
-        "rightTopSubHeight": 0,
-        "leftBottomWidth": 0,
-        "leftBottomSubWidth": 0,
-        "leftBottomHeight": 0,
-        "leftBottomSubHeight": 0,
-        "rightBottomWidth": 0,
-        "rightBottomSubWidth": 0,
-        "rightBottomHeight": 0,
-        "rightBottomSubHeight": 0
-    };
+    addMouseHandler(canvasdiv);    
 }
 
 
