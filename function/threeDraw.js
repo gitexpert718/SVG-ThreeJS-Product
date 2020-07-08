@@ -5,15 +5,17 @@ let scene = new THREE.Scene(),
     pan = {},
     panSize = {},
     knobs = {},
-    mesh = new THREE.Group(), 
-    light_point = new THREE.PointLight("0x69d0dd",1,500);
+    folding = {},
+    mesh = new THREE.Group(),
     light = new THREE.DirectionalLight( 0xffffff );
-
-light_point.position.set(1, 0, 300);
+ 
 light.position.set( 1, 0, 300 ).normalize();
-scene.add(light_point);
 scene.add(light);
 scene.add(mesh);
+
+// let light_point = new THREE.PointLight("0x69d0dd",1,500);
+// light_point.position.set(1, 0, 300);
+// scene.add(light_point);
 
 let camera = new THREE.PerspectiveCamera(50, 1134/800, 1, 2000)
 camera.position.z = 1200;
@@ -44,6 +46,18 @@ function shapeDrawInidividualPan(obj, id, pos) {
         knobs[id].material.dispose();
         knobs[id] = undefined;
     }
+    if(folding[id + "up"]) {
+        mesh.remove(folding[id + "up"]);
+        folding[id + "up"].geometry.dispose();
+        folding[id + "up"].material.dispose();
+        folding[id + "up"] = undefined;
+    }
+    if(folding[id + "down"]) {
+        mesh.remove(folding[id + "down"]);
+        folding[id + "down"].geometry.dispose();
+        folding[id + "down"].material.dispose();
+        folding[id + "down"] = undefined;
+    }
 
     let x = 0, y = 0;
 
@@ -71,20 +85,21 @@ function shapeDrawInidividualPan(obj, id, pos) {
     shape.lineTo( x - obj.width / 2, y - obj.height / 2 + obj.leftBottomHeight ); // A
 
     let extrudeSettings = { 
-        amount: 2,
+        amount: 1,
         bevelSize: 0, 
-        bevelThickness: 2 
+        bevelThickness: 1 
     };    
     geometry = new THREE.ExtrudeBufferGeometry( shape, extrudeSettings );
     material = new THREE.MeshPhongMaterial({
-        color: 0x2194ce,
-        ambient: 0x58eaea,
-        specular: 0x111111,
-        emissive: 0x0,
+        // color: 0x2194ce,
+        color: 0xDCFDFE,
+        // ambient: 0x58eaea,
+        // specular: 0x111111,
+        // emissive: 0x0,
         opacity: obj.opacity,
         transparent: true,
-        shininess: 100,
-        clipShadows: true
+        // shininess: 100,
+        // clipShadows: true
     });
     pan[id] = new THREE.Mesh( geometry, material );
     pan[id].rotation.y = obj.angle;
@@ -128,7 +143,8 @@ function drawThreeModelBtnClick(clicked_id) {
         transRate,
         transformBy = "TransformByHeight",
 
-        knobsStatus = document.getElementById("knobs" + cloneIdAdded).value || "none";
+        knobsStatus = document.getElementById("knobs" + cloneIdAdded).value || "none",
+        foldingStatus = document.getElementById("folding" + cloneIdAdded).value || "none";
 
     if(cloneIdAdded == "") {
         cloneIdAdded = "main";
@@ -138,7 +154,7 @@ function drawThreeModelBtnClick(clicked_id) {
         "width": inputedWidth, 
         "height": inputedHeight,
         "angle": angle,
-        "opacity": 0.4,
+        "opacity": 0.6,
         "leftTopWidth": leftTopWidth,
         "leftTopSubWidth": leftTopSubWidth,
         "leftTopHeight": leftTopHeight,
@@ -155,7 +171,8 @@ function drawThreeModelBtnClick(clicked_id) {
         "rightBottomSubWidth": rightBottomSubWidth,
         "rightBottomHeight": rightBottomHeight,
         "rightBottomSubHeight": rightBottomSubHeight,
-        "knobsStatus": knobsStatus
+        "knobsStatus": knobsStatus,
+        "foldingStatus": foldingStatus
     };
 
     let maxHeight = parseInt(panSize[Object.keys(panSize)[0]]["height"]) || 71,
@@ -189,7 +206,7 @@ function DrawMesh(objects, rate) {
     let panLength = Object.keys(objects).length;
 
     let objectTotalWidth = 0, objectTotalDepth = 0, startPosX = 0, startPosZ, angle=[];
-    angle[0] = 0;
+    angle[0] = -Math.PI / 6;
     for (let i = 0; i < panLength; i++) {
         if(i > 0) {
             angle.push(angle[i-1] + parseInt(180 - objects[Object.keys(objects)[i-1]].angle ) /180 * Math.PI );
@@ -242,9 +259,18 @@ function DrawMesh(objects, rate) {
                 objects[Object.keys(objects)[i]].knobsStatus
             );
         };
+        if(objects[Object.keys(objects)[i]].foldingStatus != "none") {
+            drawFolding(
+                Object.keys(objects)[i], 
+                rate, 
+                [startPosX, 0, startPosZ], 
+                angle[i], 
+                objects[Object.keys(objects)[i]].foldingStatus
+            );
+        };
         if(i < panLength - 1) {
-            startPosX += ( parseInt( objects[Object.keys(objects)[i]].width ) * Math.cos(angle[i]) + parseInt( objects[Object.keys(objects)[i+1]].width ) * Math.cos(angle[i+1]) ) * rate / 2;            
-            startPosZ -= ( ( parseInt( objects[Object.keys(objects)[i+1]].width ) ) * Math.sin(angle[i+1]) + ( parseInt( objects[Object.keys(objects)[i]].width ) ) * Math.sin(angle[i]) ) * rate / 2;
+            startPosX += ( parseInt( objects[Object.keys(objects)[i]].width ) * Math.cos(angle[i]) + parseInt( objects[Object.keys(objects)[i+1]].width ) * Math.cos(angle[i+1]) ) * rate / 2 + ( Math.cos(angle[i]) + Math.cos(angle[i+1]) ) * 2;            
+            startPosZ -= ( parseInt( objects[Object.keys(objects)[i]].width ) * Math.sin(angle[i]) + parseInt( objects[Object.keys(objects)[i+1]].width ) * Math.sin(angle[i+1]) ) * rate / 2 + ( Math.sin(angle[i]) + Math.sin(angle[i+1]) ) * 2;
         };
     }
 }
@@ -256,18 +282,57 @@ function drawKnobs(id, rate, pos, ang, dir) {
     
     var points = [];
     points.push( new THREE.Vector3( 0, 20, pointZ ) );
-    points.push( new THREE.Vector3( 20, 20, pointZ ) );
-    points.push( new THREE.Vector3( 20, -20, pointZ ) );
+    points.push( new THREE.Vector3( 10, 20, pointZ ) );
+    points.push( new THREE.Vector3( 10, -20, pointZ ) );
     points.push( new THREE.Vector3( 0, -20, pointZ ) );
 
-    var geometry = new THREE.BufferGeometry().setFromPoints( points ),
-        material = new THREE.LineBasicMaterial( { color: 0x808080, linecap: 'round', linewidth: 2, linejoin:  'round' } );
+    // var geometry = new THREE.BufferGeometry().setFromPoints( points ),
+    //     material = new THREE.LineBasicMaterial( { color: 0x708090, linecap: 'round', linewidth: 2, linejoin:  'round' } );
+    // knobs[id] = new THREE.Line( geometry, material );
 
-    knobs[id] = new THREE.Line( geometry, material );
+    var lineMaterial = new THREE.LineBasicMaterial({ color: 0x708090 }),
+        tubeGeometry = new THREE.TubeGeometry(
+            new THREE.CatmullRomCurve3(points),
+            0, // path segments
+            2, // THICKNESS
+            0, //Roundness of Tube
+            false //closed
+        );
+
+    knobs[id] = new THREE.Line(tubeGeometry, lineMaterial);
+
     knobs[id].rotation.y = ang - Math.PI / 2;
     knobs[id].position.x = pos[0];
     knobs[id].position.z = pos[2];
     mesh.add( knobs[id] );
+}
+
+
+function drawFolding(id, rate, pos, ang, dir) {
+    console.log("drawFolding", id);
+    var parentWidth = panSize[id].width * rate,
+        parentHeight = panSize[id].height * rate,
+        pointX = (dir == "right") ? parentWidth / 2 : -parentWidth / 2,
+        pointY_up = parentHeight / 2 - 50,
+        pointY_down = -parentHeight / 2 + 50;
+    
+    var geometry = new THREE.BoxGeometry( 10, 20, 5 );
+    var material = new THREE.MeshBasicMaterial( {color: 0x708090} );
+
+    folding[id + "up"] = new THREE.Mesh( geometry, material );
+    folding[id + "up"].rotation.y = ang;
+    folding[id + "up"].position.x = pos[0] + pointX * Math.cos(ang);
+    folding[id + "up"].position.y = pointY_up;
+    folding[id + "up"].position.z = pos[2] - pointX * Math.sin(ang);
+
+    folding[id + "down"] = new THREE.Mesh( geometry, material );
+    folding[id + "down"].rotation.y = ang;
+    folding[id + "down"].position.x = pos[0] + pointX * Math.cos(ang);
+    folding[id + "down"].position.y = pointY_down;
+    folding[id + "down"].position.z = pos[2] - pointX * Math.sin(ang);
+
+    mesh.add( folding[id + "up"] );
+    mesh.add( folding[id + "down"] );
 }
 
 
@@ -304,7 +369,8 @@ function AddPage(clicked_id) {
         "rightBottomSubWidth": panSize[cloneId].rightBottomSubWidth,
         "rightBottomHeight": panSize[cloneId].rightBottomHeight,
         "rightBottomSubHeight": panSize[cloneId].rightBottomSubHeight,
-        "knobsStatus": "none"
+        "knobsStatus": "none",
+        "foldingStatus": "none"
     };
     clonedStatus += "_clone";
 
@@ -394,7 +460,7 @@ function init() {
         "width": 28, 
         "height": 71,
         "angle": 0,
-        "opacity": 0.4,
+        "opacity": 0.6,
         "leftTopWidth": 0,
         "leftTopSubWidth": 0,
         "leftTopHeight": 0,
@@ -411,34 +477,10 @@ function init() {
         "rightBottomSubWidth": 0,
         "rightBottomHeight": 0,
         "rightBottomSubHeight": 0,
-        "knobsStatus": "none"
+        "knobsStatus": "none",
+        "foldingStatus": "none"
     };
-    shapeDrawInidividualPan(
-        {
-            "width": 28 * 500 / 71, 
-            "height": 500, 
-            "angle": 0.1, 
-            "opacity": 0.4,
-            "leftTopWidth": 0,
-            "leftTopSubWidth": 0,
-            "leftTopHeight": 0,
-            "leftTopSubHeight": 0,
-            "rightTopWidth": 0,
-            "rightTopSubWidth": 0,
-            "rightTopHeight": 0,
-            "rightTopSubHeight": 0,
-            "leftBottomWidth": 0,
-            "leftBottomSubWidth": 0,
-            "leftBottomHeight": 0,
-            "leftBottomSubHeight": 0,
-            "rightBottomWidth": 0,
-            "rightBottomSubWidth": 0,
-            "rightBottomHeight": 0,
-            "rightBottomSubHeight": 0
-        }, 
-        "main",
-        [0, 0, 0]
-    );
+    DrawMesh(panSize, 400/71);
     render();
     addMouseHandler(canvasdiv);    
 }
